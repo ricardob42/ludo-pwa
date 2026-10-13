@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { COLORS, type Color } from '../lib/ludo/rules'
-import { cap } from '../lib/ludo/setup'
-import { COLOR_HEX, COLOR_SHAPE, SHAPE_GLYPH } from '../lib/ludo/theme'
+import { COLOR_HEX } from '../lib/ludo/theme'
 import type { Controller } from '../hooks/useGameController'
 import { useInstallPrompt } from '../hooks/usePwa'
 import { ThemeToggle } from './ThemeToggle'
@@ -15,6 +14,14 @@ export function SetupScreen({ ctl, dark }: { ctl: Controller; dark: boolean }) {
   const [showSettings, setShowSettings] = useState(false)
   const { canInstall, install } = useInstallPrompt()
   const { settings, setSettings } = ctl
+
+  const pickColor = (i: number, c: Color) => {
+    const next = [...colors]
+    const other = next.indexOf(c)
+    if (other >= 0) next[other] = next[i]
+    next[i] = c
+    setColors(next)
+  }
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-xl flex-col gap-4 p-4">
@@ -77,7 +84,7 @@ export function SetupScreen({ ctl, dark }: { ctl: Controller; dark: boolean }) {
 
         <div className="space-y-3">
           {Array.from({ length: humans }, (_, i) => (
-            <div key={i} className="grid grid-cols-[1fr_auto] items-end gap-2">
+            <div key={i} className="space-y-2">
               <label className="block">
                 <span className="mb-1 block font-semibold">Name, player {i + 1}</span>
                 <input
@@ -88,28 +95,26 @@ export function SetupScreen({ ctl, dark }: { ctl: Controller; dark: boolean }) {
                 />
               </label>
               {!random && (
-                <label className="block">
-                  <span className="mb-1 block font-semibold">Color</span>
-                  <select
-                    className="field"
-                    value={colors[i]}
-                    onChange={(e) => {
-                      const c = e.target.value as Color
-                      // swap with whoever had it so colours stay unique
-                      const next = [...colors]
-                      const other = next.indexOf(c)
-                      if (other >= 0) next[other] = next[i]
-                      next[i] = c
-                      setColors(next)
-                    }}
-                  >
-                    {COLORS.map((c) => (
-                      <option key={c} value={c}>
-                        {SHAPE_GLYPH[COLOR_SHAPE[c]]} {cap(c)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <fieldset>
+                  <legend className="sr-only">Color, player {i + 1}</legend>
+                  <div className="flex gap-2">
+                    {COLORS.map((c) => {
+                      const selected = colors[i] === c
+                      return (
+                        <label key={c} className="flex-1">
+                          <input type="radio" name={`color-${i}`} className="sr-only" checked={selected} onChange={() => pickColor(i, c)} />
+                          <span
+                            className="block h-12 cursor-pointer rounded-xl"
+                            style={{
+                              background: COLOR_HEX[c],
+                              boxShadow: selected ? '0 0 0 3px var(--surface), 0 0 0 6px var(--ink)' : 'none',
+                            }}
+                          />
+                        </label>
+                      )
+                    })}
+                  </div>
+                </fieldset>
               )}
             </div>
           ))}
@@ -126,13 +131,6 @@ export function SetupScreen({ ctl, dark }: { ctl: Controller; dark: boolean }) {
           </label>
         )}
 
-        <div className="flex gap-2" aria-hidden="true">
-          {COLORS.map((c) => (
-            <span key={c} className="flex h-8 flex-1 items-center justify-center rounded-md text-lg" style={{ background: COLOR_HEX[c] }}>
-              {SHAPE_GLYPH[COLOR_SHAPE[c]]}
-            </span>
-          ))}
-        </div>
 
         <button type="submit" className="btn w-full text-lg">
           Start game

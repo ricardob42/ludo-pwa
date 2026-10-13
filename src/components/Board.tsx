@@ -15,7 +15,6 @@ import {
   GRID,
   TRACK_PTS,
   baseCentre,
-  baseLabelPt,
   baseRect,
   baseSlots,
   centreTriangle,
@@ -26,6 +25,17 @@ import {
 import { COLOR_DEEP, COLOR_HEX, COLOR_INK } from '../lib/ludo/theme'
 import { cap } from '../lib/ludo/setup'
 import { Pawn, PawnDefs } from './PieceShape'
+
+/** Five-point star path centred on (cx, cy). Drawn as a shape so it never depends on a font. */
+function starPoints(cx: number, cy: number, r: number): string {
+  const pts: string[] = []
+  for (let i = 0; i < 10; i++) {
+    const rad = i % 2 === 0 ? r : r * 0.45
+    const a = -Math.PI / 2 + (i * Math.PI) / 5
+    pts.push(`${(cx + rad * Math.cos(a)).toFixed(3)},${(cy + rad * Math.sin(a)).toFixed(3)}`)
+  }
+  return pts.join(' ')
+}
 import type { Anim } from '../hooks/useGameController'
 
 interface Props {
@@ -100,12 +110,26 @@ export function Board({ game, anim, moves, highlight, interactive, stepMs, onPic
     return `${cap(d.color)} pawn ${d.piece + 1}, ${where}`
   }
 
+  const seatTag = (c: Color) => (
+    <div
+      key={c}
+      className="min-w-0 truncate rounded-lg px-2 py-1 text-center text-base font-extrabold shadow"
+      style={{ background: COLOR_HEX[c], color: COLOR_INK[c] }}
+    >
+      {game.seats[COLORS.indexOf(c)].name}
+    </div>
+  )
+  const topSeats: Color[] = ['blue', 'red']
+  const bottomSeats: Color[] = ['yellow', 'green']
+
   return (
+    <div className="mx-auto w-full max-w-[min(100%,78dvh)]">
+      <div className="mb-2 grid grid-cols-2 gap-2">{topSeats.map(seatTag)}</div>
     <svg
       viewBox={`0 0 ${GRID} ${GRID}`}
       role="group"
       aria-label="Ludo board"
-      className="mx-auto block h-auto w-full max-w-[min(100%,78dvh)] touch-manipulation select-none rounded-2xl shadow-lg"
+      className="block h-auto w-full touch-manipulation select-none rounded-2xl shadow-lg"
     >
       <PawnDefs />
       <rect width={GRID} height={GRID} style={{ fill: 'var(--board-bg)' }} />
@@ -114,7 +138,6 @@ export function Board({ game, anim, moves, highlight, interactive, stepMs, onPic
       {COLORS.map((c) => {
         const r = baseRect(c)
         const ctr = baseCentre(c)
-        const lab = baseLabelPt(c)
         return (
           <g key={`base-${c}`}>
             <rect x={r.x + 0.1} y={r.y + 0.1} width={r.w - 0.2} height={r.h - 0.2} rx={0.5} fill={COLOR_HEX[c]} stroke={COLOR_DEEP[c]} strokeWidth={0.12} />
@@ -122,9 +145,6 @@ export function Board({ game, anim, moves, highlight, interactive, stepMs, onPic
             {baseSlots(c).map((s, i) => (
               <circle key={i} cx={s.x} cy={s.y} r={0.6} fill="rgba(0,0,0,0.35)" stroke="rgba(255,255,255,0.7)" strokeWidth={0.06} />
             ))}
-            <text x={lab.x} y={lab.y + 0.2} textAnchor="middle" fontSize={0.62} fontWeight={800} fill={COLOR_INK[c]}>
-              {game.seats[COLORS.indexOf(c)].name.slice(0, 12)}
-            </text>
           </g>
         )
       })}
@@ -144,9 +164,7 @@ export function Board({ game, anim, moves, highlight, interactive, stepMs, onPic
               strokeWidth={0.05}
             />
             {safe && (
-              <text x={pt.x} y={pt.y + 0.25} textAnchor="middle" fontSize={0.72} style={{ fill: startOf ? COLOR_INK[startOf] : 'var(--star)' }} aria-hidden="true">
-                ★
-              </text>
+              <polygon points={starPoints(pt.x, pt.y, 0.38)} style={{ fill: startOf ? COLOR_INK[startOf] : 'var(--star)' }} aria-hidden="true" />
             )}
           </g>
         )
@@ -184,9 +202,7 @@ export function Board({ game, anim, moves, highlight, interactive, stepMs, onPic
               strokeDasharray="0.2 0.12"
             />
             {m.capture && (
-              <text x={pt.x} y={pt.y + 0.2} textAnchor="middle" fontSize={0.6} fontWeight={800} fill="#991b1b">
-                ✕
-              </text>
+              <path d={`M ${pt.x - 0.2} ${pt.y - 0.2} L ${pt.x + 0.2} ${pt.y + 0.2} M ${pt.x + 0.2} ${pt.y - 0.2} L ${pt.x - 0.2} ${pt.y + 0.2}`} stroke="#991b1b" strokeWidth={0.12} strokeLinecap="round" />
             )}
           </g>
         ))}
@@ -228,11 +244,13 @@ export function Board({ game, anim, moves, highlight, interactive, stepMs, onPic
               {/* generous invisible hit area */}
               <circle r={0.8} fill="transparent" />
               {canPick && <ellipse className="focus-ring" cy={0.1} rx={0.5} ry={0.68} fill="none" stroke="#1d4ed8" strokeWidth={0.1} />}
-              <Pawn color={d.color} label={d.piece + 1} />
+              <Pawn color={d.color} />
             </g>
           </g>
         )
       })}
     </svg>
+      <div className="mt-2 grid grid-cols-2 gap-2">{bottomSeats.map(seatTag)}</div>
+    </div>
   )
 }
