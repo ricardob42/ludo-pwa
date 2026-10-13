@@ -1,5 +1,5 @@
 import type { GameState } from '../lib/ludo/rules'
-import { COLOR_HEX, COLOR_INK, COLOR_SHAPE, SHAPE_GLYPH } from '../lib/ludo/theme'
+import { COLOR_HEX, COLOR_INK } from '../lib/ludo/theme'
 import { cap } from '../lib/ludo/setup'
 
 const place = ['1st', '2nd', '3rd', '4th']
@@ -18,7 +18,6 @@ export function EndScreen({ game, onRematch, onNew }: { game: GameState; onRemat
             return (
               <li key={c} className="flex items-center gap-3 rounded-lg p-2 font-semibold" style={{ background: COLOR_HEX[c], color: COLOR_INK[c] }}>
                 <span className="w-10">{place[i]}</span>
-                <span aria-hidden="true">{SHAPE_GLYPH[COLOR_SHAPE[c]]}</span>
                 <span>
                   {seat.name} ({cap(c)})
                 </span>

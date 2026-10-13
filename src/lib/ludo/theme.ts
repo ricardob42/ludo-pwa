@@ -28,11 +28,3 @@ export const COLOR_INK: Record<Color, string> = {
   red: '#ffffff',
   green: '#ffffff',
 }
-/** Colour-blind friendly: every colour also has its own mark (shown on the pawn head and in the UI). */
-export const COLOR_SHAPE: Record<Color, 'circle' | 'square' | 'triangle' | 'diamond'> = {
-  yellow: 'circle',
-  blue: 'square',
-  red: 'triangle',
-  green: 'diamond',
-}
-export const SHAPE_GLYPH = { circle: '●', square: '■', triangle: '▲', diamond: '◆' } as const
