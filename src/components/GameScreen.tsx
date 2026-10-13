@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { piecesInGoal, type GameState, type Move } from '../lib/ludo/rules'
 import { COLORS } from '../lib/ludo/rules'
 import { cap } from '../lib/ludo/setup'
-import { COLOR_HEX, COLOR_INK, COLOR_SHAPE, SHAPE_GLYPH } from '../lib/ludo/theme'
+import { COLOR_HEX, COLOR_INK } from '../lib/ludo/theme'
 import type { Controller } from '../hooks/useGameController'
 import { Board } from './Board'
 import { Dice } from './Dice'
@@ -62,7 +62,6 @@ export function GameScreen({ ctl, dark }: { ctl: Controller; dark: boolean }) {
             className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl px-3 py-1 text-center font-bold"
             style={{ background: COLOR_HEX[color], color: COLOR_INK[color] }}
           >
-            <span aria-hidden="true">{SHAPE_GLYPH[COLOR_SHAPE[color]]}</span>
             <span>{status}</span>
           </div>
           <ThemeToggle dark={dark} settings={settings} onChange={ctl.setSettings} />
@@ -106,7 +105,6 @@ export function GameScreen({ ctl, dark }: { ctl: Controller; dark: boolean }) {
                     onFocus={() => setHover(m.piece)}
                     onBlur={() => setHover(null)}
                   >
-                    <span aria-hidden="true">{SHAPE_GLYPH[COLOR_SHAPE[color]]}</span>
                     {describeMove(m, game)}
                   </button>
                 </li>
@@ -128,7 +126,6 @@ export function GameScreen({ ctl, dark }: { ctl: Controller; dark: boolean }) {
                   style={{ background: COLOR_HEX[c], color: COLOR_INK[c], outline: i === game.turn && !over ? '3px solid #111827' : 'none' }}
                   aria-current={i === game.turn && !over ? 'true' : undefined}
                 >
-                  <span aria-hidden="true">{SHAPE_GLYPH[COLOR_SHAPE[c]]}</span>
                   <span className="flex-1 truncate">
                     {seat.name} {seat.kind === 'ai' ? '🤖' : ''}
                   </span>
