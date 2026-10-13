@@ -1,0 +1,166 @@
+@import 'tailwindcss';
+
+/* Class-based dark mode: <html class="dark"> (set by useTheme from the Settings choice or the OS). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  color-scheme: light;
+  --ink: #1f2937;
+  --muted: #4b5563;
+  --paper: #fdf6e3;
+  --surface: #ffffff;
+  --line: rgba(0, 0, 0, 0.12);
+  --brand: #1e3a8a;
+  --brand-hover: #1e40af;
+  --brand-soft: #dbeafe;
+  --field-line: #6b7280;
+  --board-bg: #f3ead2;
+  --cell: #fffdf5;
+  --cell-line: #6b5d45;
+  --star: #6b7280;
+}
+:root.dark {
+  color-scheme: dark;
+  --ink: #f3f4f6;
+  --muted: #cbd5e1;
+  --paper: #0f172a;
+  --surface: #1e293b;
+  --line: rgba(255, 255, 255, 0.16);
+  --brand: #93c5fd;
+  --brand-hover: #bfdbfe;
+  --brand-soft: #1e3a5f;
+  --field-line: #94a3b8;
+  --board-bg: #0b1220;
+  --cell: #e2e8f0;
+  --cell-line: #0f172a;
+  --star: #475569;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+.text-brand {
+  color: var(--brand);
+}
+.text-muted {
+  color: var(--muted);
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex min-h-12 min-w-12 items-center justify-center gap-2 rounded-xl px-4 py-2 text-base font-semibold shadow-sm active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
+    background: #1e3a8a;
+    color: #fff;
+  }
+  .btn:hover:not(:disabled) {
+    background: #1e40af;
+  }
+  :root.dark .btn {
+    background: #2563eb;
+  }
+  :root.dark .btn:hover:not(:disabled) {
+    background: #3b82f6;
+  }
+  .btn-secondary {
+    background: var(--surface);
+    color: var(--brand);
+    box-shadow: inset 0 0 0 2px var(--brand);
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background: var(--brand-soft);
+  }
+  :root.dark .btn-secondary {
+    background: var(--surface);
+  }
+  :root.dark .btn-secondary:hover:not(:disabled) {
+    background: var(--brand-soft);
+  }
+  .card {
+    @apply rounded-2xl p-4 shadow;
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15), 0 0 0 1px var(--line);
+  }
+  .field {
+    @apply min-h-12 w-full rounded-lg border-2 px-3 py-2 text-base;
+    background: var(--surface);
+    color: var(--ink);
+    border-color: var(--field-line);
+  }
+  .choice {
+    @apply flex min-h-12 cursor-pointer items-center justify-center rounded-xl border-2 text-lg font-bold;
+    background: var(--surface);
+    color: var(--brand);
+    border-color: var(--brand);
+  }
+  input:checked + .choice {
+    background: var(--brand);
+    color: var(--paper);
+  }
+  input:focus-visible + .choice {
+    outline: 3px solid #3b82f6;
+    outline-offset: 2px;
+  }
+}
+
+:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.piece-g {
+  cursor: pointer;
+}
+.piece-g .focus-ring {
+  opacity: 0;
+}
+.piece-g:focus {
+  outline: none;
+}
+.piece-g:focus .focus-ring,
+.piece-g:hover .focus-ring {
+  opacity: 1;
+}
+.target {
+  animation: pulse 1.1s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes pulse {
+  50% {
+    transform: scale(1.18);
+    opacity: 0.65;
+  }
+}
+.die-roll {
+  animation: wobble 0.35s linear infinite;
+}
+@keyframes wobble {
+  0% {
+    transform: rotate(-12deg);
+  }
+  50% {
+    transform: rotate(12deg);
+  }
+  100% {
+    transform: rotate(-12deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
