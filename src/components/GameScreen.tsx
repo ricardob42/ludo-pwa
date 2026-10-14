@@ -7,7 +7,6 @@ import type { Controller } from '../hooks/useGameController'
 import { Board } from './Board'
 import { Dice } from './Dice'
 import { EndScreen } from './EndScreen'
-import { HandoffScreen } from './HandoffScreen'
 import { ThemeToggle } from './ThemeToggle'
 import { SettingsPanel } from './SettingsPanel'
 
@@ -21,25 +20,22 @@ function describeMove(m: Move, g: GameState): string {
 }
 
 export function GameScreen({ ctl, dark }: { ctl: Controller; dark: boolean }) {
-  const { game, current, moves, busy, face, rolling, anim, log, needsHandoff, settings } = ctl
+  const { game, current, moves, busy, face, rolling, anim, log, settings } = ctl
   const [hover, setHover] = useState<number | null>(null)
   const [showSettings, setShowSettings] = useState(false)
   if (!game || !current) return null
 
   const human = current.kind === 'human'
   const over = game.phase === 'over'
-  const canRoll = human && game.phase === 'roll' && !busy && !needsHandoff
-  const canMove = human && game.phase === 'move' && !busy && !needsHandoff
+  const canMove = human && game.phase === 'move' && !busy && moves.length > 1
   const color = current.color
 
   const status = over
     ? 'Game over'
     : human
       ? game.phase === 'roll'
-        ? `${current.name}, roll the die`
-        : moves.length
-          ? `${current.name}, choose a piece to move ${game.roll}`
-          : ''
+        ? `${current.name} is rolling…`
+        : `${current.name}, choose a piece to move ${game.roll}`
       : `${current.name} is playing…`
 
   const openSettings = () => {
@@ -85,9 +81,6 @@ export function GameScreen({ ctl, dark }: { ctl: Controller; dark: boolean }) {
         <section className="card flex items-center gap-4" aria-label="Dice">
           <Dice value={face} rolling={rolling} />
           <div className="flex-1">
-            <button className="btn w-full text-lg" disabled={!canRoll} onClick={() => void ctl.roll()}>
-              Roll die
-            </button>
           </div>
         </section>
 
@@ -157,7 +150,6 @@ export function GameScreen({ ctl, dark }: { ctl: Controller; dark: boolean }) {
         </button>
       </aside>
 
-      {needsHandoff && <HandoffScreen seat={current} onReady={ctl.ready} />}
       {over && <EndScreen game={game} onRematch={ctl.rematch} onNew={ctl.quit} />}
       {showSettings && <SettingsPanel settings={settings} reduced={ctl.reduced} onChange={ctl.setSettings} onClose={closeSettings} />}
     </main>

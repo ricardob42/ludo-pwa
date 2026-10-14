@@ -57,7 +57,6 @@ export function useGameController() {
   const [face, setFace] = useState<number | null>(null)
   const [rolling, setRolling] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [readySeat, setReadySeat] = useState<number | null>(null)
   const [paused, setPaused] = useState(false)
 
   const reduced = usePrefersReducedMotion()
@@ -83,8 +82,6 @@ export function useGameController() {
     setGame((g) => (g ? { ...g, rules: { ...g.rules, extraRollEnabled: next.extraRoll } } : g))
   }, [])
 
-  const humans = useMemo(() => (game ? game.seats.filter((s) => s.kind === 'human').length : 0), [game])
-
   const beginGame = useCallback((g: GameState, lines: string[] = [], lastRoll: number | null = null) => {
     gen.current++
     busyRef.current = false
@@ -93,7 +90,6 @@ export function useGameController() {
     setRolling(false)
     setFace(lastRoll)
     setLog(lines)
-    setReadySeat(null)
     setPaused(false)
     setGame(g)
   }, [])
@@ -215,30 +211,31 @@ export function useGameController() {
     [stepMs, pushLog],
   )
 
-  // AI turns run automatically with a short, visible delay.
+  // Autoplay. Dice roll on their own. A single legal move is played without asking.
+  // A human is only asked to choose when there are two or more legal moves. AI seats always choose themselves.
   useEffect(() => {
     if (!game || game.phase === 'over' || busy || paused) return
-    if (game.seats[game.turn].kind !== 'ai') return
+    const seat = game.seats[game.turn]
     const fast = speed === 'fast'
-    const delay = (fast ? 300 : 600) + Math.random() * (fast ? 150 : 300)
-    const t = setTimeout(() => {
-      if (game.phase === 'roll') void roll()
-      else {
-        const m: Move = chooseMove(game, settingsRef.current.difficulty)
-        void move(m.piece)
-      }
-    }, delay)
-    return () => clearTimeout(t)
+    const jitter = Math.random()
+    if (game.phase === 'roll') {
+      const delay = seat.kind === 'ai' ? (fast ? 300 : 600) + jitter * (fast ? 150 : 300) : fast ? 150 : 350
+      const t = setTimeout(() => void roll(), delay)
+      return () => clearTimeout(t)
+    }
+    if (seat.kind === 'ai') {
+      const delay = (fast ? 300 : 600) + jitter * (fast ? 150 : 300)
+      const t = setTimeout(() => void move(chooseMove(game, settingsRef.current.difficulty).piece), delay)
+      return () => clearTimeout(t)
+    }
+    const legal = legalMoves(game)
+    if (legal.length === 1) {
+      const t = setTimeout(() => void move(legal[0].piece), fast ? 150 : 450)
+      return () => clearTimeout(t)
+    }
   }, [game, busy, paused, speed, roll, move])
 
   const current = game ? game.seats[game.turn] : null
-  const needsHandoff =
-    !!game &&
-    game.phase !== 'over' &&
-    humans > 1 &&
-    current?.kind === 'human' &&
-    readySeat !== game.turn &&
-    !busy
   const moves = useMemo(() => (game ? legalMoves(game) : []), [game])
 
   return {
@@ -253,11 +250,8 @@ export function useGameController() {
     busy,
     paused,
     setPaused,
-    humans,
     current,
     moves,
-    needsHandoff,
-    ready: () => setReadySeat(gameRef.current ? gameRef.current.turn : null),
     start,
     rematch,
     resume,
