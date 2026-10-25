@@ -7,7 +7,7 @@ export function ThemeToggle({ dark, settings, onChange }: { dark: boolean; setti
   return (
     <button
       type="button"
-      className="btn btn-secondary"
+      className="icon-btn"
       aria-label={dark ? t('toLight') : t('toDark')}
       title={dark ? t('lightMode') : t('darkMode')}
       onClick={() => onChange({ ...settings, theme: dark ? 'light' : 'dark' })}

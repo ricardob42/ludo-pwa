@@ -8,6 +8,7 @@ import {
   applyRoll,
   createGame,
   legalMoves,
+  uniqueMoves,
   type Color,
   type GameEvent,
   type GameState,
@@ -227,7 +228,7 @@ export function useGameController() {
       const t = setTimeout(() => void move(chooseMove(game, settingsRef.current.difficulty).piece), delay)
       return () => clearTimeout(t)
     }
-    const legal = legalMoves(game)
+    const legal = uniqueMoves(legalMoves(game)) // equivalent moves (e.g. identical pawns in the yard) need no choice
     if (legal.length === 1) {
       const t = setTimeout(() => void move(legal[0].piece), fast ? 150 : 450)
       return () => clearTimeout(t)

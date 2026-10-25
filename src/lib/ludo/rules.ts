@@ -232,6 +232,17 @@ export function legalMoves(state: GameState): Move[] {
   return movesFor(state, COLORS[state.turn], state.roll)
 }
 
+/** Moves with the same result (identical pawns in the yard, stacked pawns) count once. */
+export function uniqueMoves(moves: Move[]): Move[] {
+  const seen = new Set<string>()
+  return moves.filter((m) => {
+    const k = `${m.from}>${m.to}`
+    if (seen.has(k)) return false
+    seen.add(k)
+    return true
+  })
+}
+
 /** Apply a move to a bare board (no turn logic). Used by the AI for lookahead. */
 export function applyBoardMove(pieces: Pieces, color: Color, move: Move): Pieces {
   const next = clone(pieces)

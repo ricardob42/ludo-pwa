@@ -6,7 +6,7 @@ export function LangToggle({ settings, onChange }: { settings: Settings; onChang
   const t = useT()
   const next = settings.lang === 'es' ? 'en' : 'es'
   return (
-    <button type="button" className="btn btn-secondary" aria-label={t('switchLang')} title={t('switchLang')} onClick={() => onChange({ ...settings, lang: next })}>
+    <button type="button" className="icon-btn" aria-label={t('switchLang')} title={t('switchLang')} onClick={() => onChange({ ...settings, lang: next })}>
       <span aria-hidden="true" className="font-extrabold tracking-wide">
         {next.toUpperCase()}
       </span>
