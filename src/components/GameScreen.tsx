@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { piecesInGoal, type GameState, type Move } from '../lib/ludo/rules'
+import { LAST_OUTER, piecesInGoal, type Move } from '../lib/ludo/rules'
 import { COLORS } from '../lib/ludo/rules'
 import { cap } from '../lib/ludo/setup'
 import { COLOR_HEX, COLOR_INK } from '../lib/ludo/theme'
@@ -10,13 +10,11 @@ import { EndScreen } from './EndScreen'
 import { ThemeToggle } from './ThemeToggle'
 import { SettingsPanel } from './SettingsPanel'
 
-function describeMove(m: Move, g: GameState): string {
-  const n = `Piece ${m.piece + 1}`
-  if (m.kind === 'exit') return `${n}: leave the yard${m.capture ? `, capture ${cap(m.capture.color)}` : ''}`
-  if (m.kind === 'goal') return `${n}: get home`
-  const steps = m.to - m.from
-  const extra = m.capture ? `, capture ${cap(m.capture.color)}` : m.kind === 'lane' ? ', enter home column' : ''
-  return `${n}: move ${steps}${extra}`
+function describeMove(m: Move): string {
+  const dest = m.capture ? `, capture ${cap(m.capture.color)}` : m.kind === 'goal' ? ', reach home' : m.kind === 'lane' ? ', into the home column' : ''
+  if (m.kind === 'exit') return `Pawn in the yard: leave the yard${dest}`
+  const from = m.from > LAST_OUTER ? 'in the home column' : `${m.from} squares from start`
+  return `Pawn ${from}: move ${m.to - m.from}${dest}`
 }
 
 export function GameScreen({ ctl, dark }: { ctl: Controller; dark: boolean }) {
@@ -35,7 +33,7 @@ export function GameScreen({ ctl, dark }: { ctl: Controller; dark: boolean }) {
     : human
       ? game.phase === 'roll'
         ? `${current.name} is rolling…`
-        : `${current.name}, choose a piece to move ${game.roll}`
+        : `${current.name}, drag a pawn to move ${game.roll}`
       : `${current.name} is playing…`
 
   const openSettings = () => {
@@ -72,6 +70,9 @@ export function GameScreen({ ctl, dark }: { ctl: Controller; dark: boolean }) {
           highlight={hover}
           interactive={canMove}
           stepMs={ctl.stepMs}
+          view={settings.view}
+          thrown={ctl.thrown}
+          rollMs={ctl.rollMs}
           onPick={(p) => void ctl.move(p)}
           onHover={setHover}
         />
@@ -86,7 +87,8 @@ export function GameScreen({ ctl, dark }: { ctl: Controller; dark: boolean }) {
 
         {canMove && (
           <section className="card" aria-label="Legal moves">
-            <h2 className="mb-2 font-bold">Legal moves</h2>
+            <h2 className="mb-1 font-bold">Legal moves</h2>
+            <p className="mb-2 text-sm text-muted">Drag a glowing pawn onto its dashed circle, or pick a move below. Hover a move to see which pawn it is.</p>
             <ul className="space-y-2">
               {moves.map((m) => (
                 <li key={m.piece}>
@@ -98,7 +100,7 @@ export function GameScreen({ ctl, dark }: { ctl: Controller; dark: boolean }) {
                     onFocus={() => setHover(m.piece)}
                     onBlur={() => setHover(null)}
                   >
-                    {describeMove(m, game)}
+                    {describeMove(m)}
                   </button>
                 </li>
               ))}
