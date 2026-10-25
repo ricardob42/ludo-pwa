@@ -15,14 +15,14 @@ export default defineConfig({
       manifest: {
         name: 'Ludo',
         short_name: 'Ludo',
-        description: 'Ludo for 1–4 players. Works offline.',
+        description: 'Ludo para 1–4 jugadores. Funciona sin conexión.',
         theme_color: '#1e3a8a',
         background_color: '#fdf6e3',
         display: 'standalone',
         orientation: 'any',
         start_url: '/',
         scope: '/',
-        lang: 'en',
+        lang: 'es',
         categories: ['games'],
         icons: [
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },

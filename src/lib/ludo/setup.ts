@@ -38,7 +38,7 @@ export function buildSeats(cfg: SetupConfig, rng: () => number = Math.random): S
   }
   return COLORS.map((color) => {
     const i = humanColors.indexOf(color)
-    if (i >= 0) return { color, name: cfg.names[i]?.trim() || `Player ${i + 1}`, kind: 'human' as const }
-    return { color, name: `CPU ${cap(color)}`, kind: 'ai' as const }
+    if (i >= 0) return { color, name: cfg.names[i]?.trim() || `#p${i + 1}`, kind: 'human' as const }
+    return { color, name: '#cpu', kind: 'ai' as const }
   })
 }

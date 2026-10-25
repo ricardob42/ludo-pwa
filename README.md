@@ -87,6 +87,13 @@ crisp in every browser (CSS-transformed SVG is rasterised and looks soft in Fire
 thrown in from the rolling player's side, bounces and settles on the board (`src/components/Die3D.tsx`). With reduced motion
 or animation speed "Off", the throw is skipped.
 
+## Language
+
+The interface is in Spanish by default and can be switched to English with the ES/EN button in the header or under
+Settings -> Language (saved between sessions). All texts live in `src/lib/i18n.ts` (one dictionary per language; TypeScript
+fails the build if a key is missing in either). The game log is stored as data and translated when shown, so it follows the
+language switch too.
+
 ## Themes
 
 Light, dark, or match-device: use the sun/moon button in the header or the Theme setting. The choice is saved, and the
