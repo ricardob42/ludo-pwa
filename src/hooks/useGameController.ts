@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { chooseMove } from '../lib/ludo/ai'
-import { describeEvent } from '../lib/ludo/log'
+import type { LogEntry } from '../lib/ludo/log'
 import {
   COLORS,
   DEFAULT_RULES,
@@ -53,7 +53,7 @@ export function useGameController() {
   const [settings, setSettingsState] = useState<Settings>(loadSettings)
   const [saved, setSaved] = useState<SavedGame | null>(loadSavedGame)
   const [game, setGame] = useState<GameState | null>(null)
-  const [log, setLog] = useState<string[]>([])
+  const [log, setLog] = useState<LogEntry[]>([])
   const [anim, setAnim] = useState<Anim | null>(null)
   const [face, setFace] = useState<number | null>(null)
   const [rolling, setRolling] = useState(false)
@@ -73,9 +73,8 @@ export function useGameController() {
   gameRef.current = game
   settingsRef.current = settings
 
-  const pushLog = useCallback((events: GameEvent[], g: GameState) => {
-    const lines = events.map((e) => describeEvent(e, g.seats)).filter((x): x is string => !!x)
-    if (lines.length) setLog((l) => [...l, ...lines].slice(-LOG_MAX))
+  const pushLog = useCallback((events: GameEvent[]) => {
+    if (events.length) setLog((l) => [...l, ...events].slice(-LOG_MAX))
   }, [])
 
   const setSettings = useCallback((next: Settings) => {
@@ -84,7 +83,7 @@ export function useGameController() {
     setGame((g) => (g ? { ...g, rules: { ...g.rules, extraRollEnabled: next.extraRoll } } : g))
   }, [])
 
-  const beginGame = useCallback((g: GameState, lines: string[] = [], lastRoll: number | null = null) => {
+  const beginGame = useCallback((g: GameState, lines: LogEntry[] = [], lastRoll: number | null = null) => {
     gen.current++
     busyRef.current = false
     setBusy(false)
@@ -103,7 +102,7 @@ export function useGameController() {
       const rules = { ...DEFAULT_RULES, extraRollEnabled: settingsRef.current.extraRoll }
       clearSavedGame()
       setSaved(null)
-      beginGame(createGame(seats, rules, 0), [`${seats[0].name} starts`])
+      beginGame(createGame(seats, rules, 0), [{ type: 'start', color: seats[0].color }])
     },
     [beginGame],
   )
@@ -113,7 +112,7 @@ export function useGameController() {
     if (!g) return
     clearSavedGame()
     const rules = { ...DEFAULT_RULES, extraRollEnabled: settingsRef.current.extraRoll }
-    beginGame(createGame(g.seats, rules, 0), ['Rematch!'])
+    beginGame(createGame(g.seats, rules, 0), [{ type: 'rematch' }])
   }, [beginGame])
 
   const resume = useCallback(() => {
@@ -163,7 +162,7 @@ export function useGameController() {
     setFace(value)
     const r = applyRoll(g, value)
     setGame(r.state)
-    pushLog(r.events, g)
+    pushLog(r.events)
     if (r.state.phase === 'roll') await sleep(rollMs > 0 ? 800 : 500) // no legal move: let the player see the die
     if (gen.current !== my) return
     busyRef.current = false
@@ -194,7 +193,7 @@ export function useGameController() {
       const r = applyMove(g, m)
       setAnim(null)
       setGame(r.state)
-      pushLog(r.events, g)
+      pushLog(r.events)
       const snd = r.events.some((e) => e.type === 'gameover')
         ? 'win'
         : r.events.some((e) => e.type === 'capture')

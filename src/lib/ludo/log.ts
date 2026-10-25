@@ -1,31 +1,35 @@
-import { type GameEvent, type Seat, colorIndex } from './rules'
-import { cap } from './setup'
+import { type Color, type GameEvent, type Seat, colorIndex } from './rules'
+import { colorName, seatName, type T } from '../i18n'
 
-const ordinal = (n: number): string => ['', '1st', '2nd', '3rd', '4th'][n] ?? `${n}th`
+/** Log entries are stored as data (not text) so the log can be re-translated when the language changes. */
+export type LogEntry = GameEvent | { type: 'start'; color: Color } | { type: 'rematch' }
 
-/** Human-readable log line for an engine event (null = not worth logging). */
-export function describeEvent(e: GameEvent, seats: Seat[]): string | null {
-  const name = (c: Parameters<typeof colorIndex>[0]) => seats[colorIndex(c)].name
+export function describeEvent(e: LogEntry, seats: Seat[], t: T): string | null {
+  const name = (c: Color) => seatName(seats[colorIndex(c)], t)
   switch (e.type) {
     case 'roll':
-      return `${name(e.color)} rolled a ${e.value}`
+      return t('logRoll', { name: name(e.color), n: e.value })
     case 'pass':
-      return `${name(e.color)} has no legal move`
-    case 'exit':
-      return `${name(e.color)} left the yard with piece ${e.piece + 1}`
-    case 'move':
-      return `${name(e.color)} moved piece ${e.piece + 1} by ${e.steps}`
-    case 'capture':
-      return `${name(e.color)} captured ${cap(e.victim)}'s piece`
-    case 'goal':
-      return `${name(e.color)} got piece ${e.piece + 1} home`
+      return t('logPass', { name: name(e.color) })
     case 'penalty':
-      return `${name(e.color)} rolled too many sixes in a row and loses the turn`
+      return t('logPenalty', { name: name(e.color) })
+    case 'exit':
+      return t('logExit', { name: name(e.color), n: e.piece + 1 })
+    case 'move':
+      return t('logMove', { name: name(e.color), n: e.piece + 1, steps: e.steps })
+    case 'capture':
+      return t('logCapture', { name: name(e.color), color: colorName(t, e.victim) })
+    case 'goal':
+      return t('logGoal', { name: name(e.color), n: e.piece + 1 })
     case 'extra':
-      return `${name(e.color)} rolls again`
+      return t('logExtra', { name: name(e.color) })
     case 'finish':
-      return `${name(e.color)} finished ${ordinal(e.rank)}`
+      return t('logFinish', { name: name(e.color), place: t(`ord${e.rank}` as 'ord1') })
     case 'gameover':
-      return 'Game over'
+      return t('logGameOver')
+    case 'start':
+      return t('logStart', { name: name(e.color) })
+    case 'rematch':
+      return t('logRematch')
   }
 }

@@ -1,5 +1,7 @@
 import { COLORS, type GameState } from './ludo/rules'
 import type { Difficulty } from './ludo/setup'
+import type { LogEntry } from './ludo/log'
+import { DEFAULT_LANG, type Lang } from './i18n'
 
 export interface Settings {
   difficulty: Difficulty
@@ -8,13 +10,14 @@ export interface Settings {
   extraRoll: boolean
   theme: 'system' | 'light' | 'dark'
   view: '3d' | 'flat'
+  lang: Lang
 }
-export const DEFAULT_SETTINGS: Settings = { difficulty: 'medium', speed: 'normal', sound: false, extraRoll: true, theme: 'system', view: '3d' }
+export const DEFAULT_SETTINGS: Settings = { difficulty: 'medium', speed: 'normal', sound: false, extraRoll: true, theme: 'system', view: '3d', lang: DEFAULT_LANG }
 
 export interface SavedGame {
   v: 1
   game: GameState
-  log: string[]
+  log: LogEntry[]
   lastRoll: number | null
 }
 
@@ -56,7 +59,10 @@ export function loadSavedGame(): SavedGame | null {
     const raw = localStorage.getItem(GAME_KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw) as SavedGame
-    if (parsed.v === 1 && valid(parsed.game) && parsed.game.phase !== 'over') return parsed
+    if (parsed.v === 1 && valid(parsed.game) && parsed.game.phase !== 'over') {
+      parsed.log = Array.isArray(parsed.log) ? parsed.log.filter((x) => !!x && typeof x === 'object') : []
+      return parsed
+    }
   } catch {
     /* ignore */
   }

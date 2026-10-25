@@ -13,7 +13,8 @@ import {
 } from '../lib/ludo/rules'
 import { GRID, TRACK_PTS, baseCentre, baseRect, baseSlots, centreTriangle, lanePt, piecePoint, type Pt } from '../lib/ludo/geometry'
 import { COLOR_DEEP, COLOR_HEX, COLOR_INK } from '../lib/ludo/theme'
-import { cap } from '../lib/ludo/setup'
+import { colorName, seatName } from '../lib/i18n'
+import { useT } from '../hooks/useLang'
 import { VIEW_3D, VIEW_FLAT, localScale, projectBoardPoint, unprojectScreenPoint } from '../lib/ludo/view'
 import { Pawn, PawnDefs } from './PieceShape'
 import { DiceThrow, type Thrown } from './Die3D'
@@ -79,6 +80,7 @@ const cellStyle = { fill: 'var(--cell)', stroke: 'var(--cell-line)' }
 const FRAME = 0.55
 
 export function Board({ game, anim, moves, highlight, interactive, stepMs, view, thrown, rollMs, onPick, onHover }: Props) {
+  const t = useT()
   const rules = game.rules
   const turnColor = COLORS[game.turn]
   const svgRef = useRef<SVGSVGElement>(null)
@@ -176,13 +178,13 @@ export function Board({ game, anim, moves, highlight, interactive, stepMs, view,
 
   const label = (d: Drawn) => {
     const where =
-      d.p === BASE ? 'in the yard' : d.p === GOAL ? 'at home' : d.p > LAST_OUTER ? 'in the home column' : `${d.p} squares from its start`
-    return `${cap(d.color)} pawn ${d.piece + 1}, ${where}`
+      d.p === BASE ? t('whereBase') : d.p === GOAL ? t('whereGoal') : d.p > LAST_OUTER ? t('whereLane') : t('whereTrack', { n: d.p })
+    return t('pawnLabel', { color: colorName(t, d.color), n: d.piece + 1, where })
   }
 
   const seatTag = (c: Color) => (
     <div key={c} className="min-w-0 truncate rounded-lg px-2 py-1 text-center text-base font-extrabold shadow" style={{ background: COLOR_HEX[c], color: COLOR_INK[c] }}>
-      {game.seats[COLORS.indexOf(c)].name}
+      {seatName(game.seats[COLORS.indexOf(c)], t)}
     </div>
   )
   const topSeats: Color[] = ['blue', 'red']
@@ -202,7 +204,7 @@ export function Board({ game, anim, moves, highlight, interactive, stepMs, view,
           ref={svgRef}
           viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`}
           role="group"
-          aria-label="Ludo board"
+          aria-label={t('boardLabel')}
           className="block h-full w-full select-none"
           style={{ touchAction: interactive ? 'none' : 'manipulation', overflow: 'visible' }}
           onPointerMove={moveDrag}
@@ -327,7 +329,7 @@ export function Board({ game, anim, moves, highlight, interactive, stepMs, view,
                   style={canPick ? { cursor: dragging ? 'grabbing' : 'grab' } : undefined}
                   role={canPick ? 'button' : undefined}
                   tabIndex={canPick ? 0 : undefined}
-                  aria-label={canPick ? `${label(d)}. Press Enter to move it, or drag it.` : undefined}
+                  aria-label={canPick ? `${label(d)}. ${t('pawnHint')}` : undefined}
                   aria-hidden={canPick ? undefined : true}
                   onPointerDown={canPick ? (e) => startDrag(e, d.piece) : undefined}
                   onKeyDown={
