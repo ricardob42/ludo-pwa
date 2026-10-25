@@ -8,6 +8,7 @@ import {
   createGame,
   legalMoves,
   movesFor,
+  uniqueMoves,
   type GameState,
   type RulesConfig,
   type Seat,
@@ -256,6 +257,20 @@ describe('extra rolls, sixes and passes', () => {
   it('rejects illegal moves', () => {
     const g = applyRoll(game(), 6).state
     expect(() => applyMove(g, { piece: 9 })).toThrow()
+  })
+})
+
+describe('equivalent moves', () => {
+  it('four identical pawns in the yard are one choice', () => {
+    const m = movesFor(game(), 'yellow', 6)
+    expect(m).toHaveLength(4)
+    expect(uniqueMoves(m)).toHaveLength(1)
+  })
+
+  it('different pawns stay separate choices', () => {
+    const g = game()
+    g.pieces.yellow = [10, 20, -1, -1]
+    expect(uniqueMoves(movesFor(g, 'yellow', 3))).toHaveLength(2)
   })
 })
 

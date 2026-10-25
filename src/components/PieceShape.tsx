@@ -29,3 +29,12 @@ export function Pawn({ color }: { color: Color }) {
     </g>
   )
 }
+
+/** A small standalone pawn icon for the UI around the board (uses the gradients defined by the board). */
+export function PawnIcon({ color, size = 28 }: { color: Color; size?: number }) {
+  return (
+    <svg viewBox="-0.42 -0.44 0.84 1.02" width={size} height={size * (1.02 / 0.84)} aria-hidden="true" className="shrink-0">
+      <Pawn color={color} />
+    </svg>
+  )
+}

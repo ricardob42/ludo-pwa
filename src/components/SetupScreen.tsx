@@ -48,7 +48,7 @@ export function SetupScreen({ ctl, dark }: { ctl: Controller; dark: boolean }) {
             )}
             <LangToggle settings={settings} onChange={setSettings} />
             <ThemeToggle dark={dark} settings={settings} onChange={setSettings} />
-            <button className="btn btn-secondary" onClick={() => setShowSettings(true)} aria-label={t('settings')}>
+            <button className="icon-btn" onClick={() => setShowSettings(true)} aria-label={t('settings')}>
               ⚙
             </button>
           </div>
