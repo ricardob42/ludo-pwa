@@ -7,8 +7,9 @@ export interface Settings {
   sound: boolean
   extraRoll: boolean
   theme: 'system' | 'light' | 'dark'
+  view: '3d' | 'flat'
 }
-export const DEFAULT_SETTINGS: Settings = { difficulty: 'medium', speed: 'normal', sound: false, extraRoll: true, theme: 'system' }
+export const DEFAULT_SETTINGS: Settings = { difficulty: 'medium', speed: 'normal', sound: false, extraRoll: true, theme: 'system', view: '3d' }
 
 export interface SavedGame {
   v: 1

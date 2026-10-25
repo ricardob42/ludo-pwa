@@ -79,6 +79,13 @@ All in **`DEFAULT_RULES`** at the top of `src/lib/ludo/rules.ts`:
 | `safeSquares` | start + star squares | 0-indexed outer track |
 | `entrySquares` | 8, 21, 34, 47 | start square per colour |
 
+## Table view and dice
+
+The board is shown as a tilted 3D table by default (Settings -> Board view -> Flat for top-down). The camera math lives in
+`src/lib/ludo/view.ts` (with tests), so dragging still maps exactly onto the board. The die is a real CSS 3D cube that is
+thrown in from the rolling player's side, bounces and settles on the board (`src/components/Die3D.tsx`). With reduced motion
+or animation speed "Off", the throw is skipped.
+
 ## Themes
 
 Light, dark, or match-device: use the sun/moon button in the header or the Theme setting. The choice is saved, and the

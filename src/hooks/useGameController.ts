@@ -15,6 +15,7 @@ import {
 } from '../lib/ludo/rules'
 import { buildSeats, type SetupConfig } from '../lib/ludo/setup'
 import { playSound } from '../lib/sound'
+import type { Thrown } from '../components/Die3D'
 import {
   clearSavedGame,
   loadSavedGame,
@@ -56,13 +57,14 @@ export function useGameController() {
   const [anim, setAnim] = useState<Anim | null>(null)
   const [face, setFace] = useState<number | null>(null)
   const [rolling, setRolling] = useState(false)
+  const [thrown, setThrown] = useState<Thrown | null>(null)
   const [busy, setBusy] = useState(false)
   const [paused, setPaused] = useState(false)
 
   const reduced = usePrefersReducedMotion()
   const speed = reduced ? 'off' : settings.speed
   const stepMs = speed === 'normal' ? 170 : speed === 'fast' ? 70 : 0
-  const rollMs = speed === 'normal' ? 700 : speed === 'fast' ? 350 : 0
+  const rollMs = speed === 'normal' ? 1000 : speed === 'fast' ? 550 : 0
 
   const gameRef = useRef<GameState | null>(null)
   const busyRef = useRef(false)
@@ -88,6 +90,7 @@ export function useGameController() {
     setBusy(false)
     setAnim(null)
     setRolling(false)
+    setThrown(null)
     setFace(lastRoll)
     setLog(lines)
     setPaused(false)
@@ -151,12 +154,9 @@ export function useGameController() {
     const value = 1 + Math.floor(Math.random() * 6)
     playSound('roll', settingsRef.current.sound)
     if (rollMs > 0) {
+      setThrown({ id: Date.now(), value, color: COLORS[g.turn] })
       setRolling(true)
-      const t0 = Date.now()
-      while (Date.now() - t0 < rollMs) {
-        setFace(1 + Math.floor(Math.random() * 6))
-        await sleep(90)
-      }
+      await sleep(rollMs)
       if (gen.current !== my) return
       setRolling(false)
     }
@@ -247,6 +247,8 @@ export function useGameController() {
     anim,
     face,
     rolling,
+    thrown,
+    rollMs,
     busy,
     paused,
     setPaused,

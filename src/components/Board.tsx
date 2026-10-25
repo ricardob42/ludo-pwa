@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react'
 import {
   BASE,
   COLORS,
@@ -25,6 +25,8 @@ import {
 import { COLOR_DEEP, COLOR_HEX, COLOR_INK } from '../lib/ludo/theme'
 import { cap } from '../lib/ludo/setup'
 import { Pawn, PawnDefs } from './PieceShape'
+import { DiceThrow, type Thrown } from './Die3D'
+import { PERSPECTIVE, STAGE_RATIO, TILT_DEG, TILT_SCALE, UPRIGHT, unprojectScreenPoint } from '../lib/ludo/view'
 
 /** Five-point star path centred on (cx, cy). Drawn as a shape so it never depends on a font. */
 function starPoints(cx: number, cy: number, r: number): string {
@@ -45,6 +47,9 @@ interface Props {
   highlight: number | null
   interactive: boolean
   stepMs: number
+  view: '3d' | 'flat'
+  thrown: Thrown | null
+  rollMs: number
   onPick: (piece: number) => void
   onHover: (piece: number | null) => void
 }
@@ -57,11 +62,28 @@ interface Drawn {
   moving: boolean
 }
 
+const DROP_RADIUS = 1.1 // how close (in board cells) a dropped pawn must be to its target
+
 const cell = { fill: 'var(--cell)', stroke: 'var(--cell-line)' }
 
-export function Board({ game, anim, moves, highlight, interactive, stepMs, onPick, onHover }: Props) {
+export function Board({ game, anim, moves, highlight, interactive, stepMs, view, thrown, rollMs, onPick, onHover }: Props) {
   const rules = game.rules
   const turnColor = COLORS[game.turn]
+  const svgRef = useRef<SVGSVGElement>(null)
+  const stageRef = useRef<HTMLDivElement>(null)
+  const [W, setW] = useState(400)
+  const is3d = view === '3d'
+  useEffect(() => {
+    const el = stageRef.current
+    if (!el) return
+    const ro = new ResizeObserver(() => setW(el.getBoundingClientRect().width || 400))
+    ro.observe(el)
+    setW(el.getBoundingClientRect().width || 400)
+    return () => ro.disconnect()
+  }, [])
+  // Pawns stand upright: undo the foreshortening of the tilted board plane.
+  const stand = is3d ? `translate(0 0.44) scale(1 ${UPRIGHT.toFixed(3)}) translate(0 -0.44)` : undefined
+  const [drag, setDrag] = useState<{ piece: number; pt: Pt } | null>(null)
 
   const drawn = useMemo(() => {
     const list: Drawn[] = []
@@ -101,6 +123,34 @@ export function Board({ game, anim, moves, highlight, interactive, stepMs, onPic
     return out
   }, [game.pieces, rules])
 
+  const toBoard = (e: PointerEvent): Pt => {
+    if (is3d && stageRef.current) {
+      const r = stageRef.current.getBoundingClientRect()
+      return unprojectScreenPoint({ x: e.clientX - (r.left + r.width / 2), y: e.clientY - (r.top + r.height / 2) }, r.width)
+    }
+    const m = svgRef.current?.getScreenCTM()
+    if (!m) return { x: 0, y: 0 }
+    const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse())
+    return { x: p.x, y: p.y }
+  }
+  const startDrag = (e: PointerEvent, piece: number) => {
+    e.preventDefault()
+    svgRef.current?.setPointerCapture(e.pointerId)
+    setDrag({ piece, pt: toBoard(e) })
+    onHover(piece)
+  }
+  const moveDrag = (e: PointerEvent) => {
+    if (drag) setDrag({ piece: drag.piece, pt: toBoard(e) })
+  }
+  const endDrag = (drop: boolean) => {
+    if (drag && drop) {
+      const t = targets.find((x) => x.m.piece === drag.piece)
+      if (t && Math.hypot(t.pt.x - drag.pt.x, t.pt.y - drag.pt.y) <= DROP_RADIUS) onPick(drag.piece)
+    }
+    setDrag(null)
+    onHover(null)
+  }
+
   const targets = moves.map((m) => ({ m, pt: piecePoint(turnColor, m.to, m.piece, rules) }))
   const legalPieces = new Set(moves.map((m) => m.piece))
 
@@ -123,13 +173,30 @@ export function Board({ game, anim, moves, highlight, interactive, stepMs, onPic
   const bottomSeats: Color[] = ['yellow', 'green']
 
   return (
-    <div className="mx-auto w-full max-w-[min(100%,78dvh)]">
+    <div className="scene mx-auto w-full max-w-[min(100%,96dvh)]">
       <div className="mb-2 grid grid-cols-2 gap-2">{topSeats.map(seatTag)}</div>
+      <div
+        ref={stageRef}
+        className="relative"
+        style={is3d ? { height: W * STAGE_RATIO, perspective: W * PERSPECTIVE } : { aspectRatio: '1 / 1' }}
+      >
+        <div
+          style={
+            is3d
+              ? { position: 'absolute', left: 0, top: '50%', width: '100%', aspectRatio: '1 / 1', marginTop: '-50%', transform: `scale(${TILT_SCALE}) rotateX(${TILT_DEG}deg)`, transformOrigin: '50% 50%' }
+              : { width: '100%', height: '100%' }
+          }
+        >
     <svg
+      ref={svgRef}
       viewBox={`0 0 ${GRID} ${GRID}`}
       role="group"
       aria-label="Ludo board"
-      className="block h-auto w-full touch-manipulation select-none rounded-2xl shadow-lg"
+      className="board-slab block h-full w-full select-none rounded-2xl"
+      style={{ touchAction: interactive ? 'none' : 'manipulation' }}
+      onPointerMove={moveDrag}
+      onPointerUp={() => endDrag(true)}
+      onPointerCancel={() => endDrag(false)}
     >
       <PawnDefs />
       <rect width={GRID} height={GRID} style={{ fill: 'var(--board-bg)' }} />
@@ -187,45 +254,65 @@ export function Board({ game, anim, moves, highlight, interactive, stepMs, onPic
         <circle key={`d${i}`} cx={pt.x} cy={pt.y} r={0.62} fill="none" stroke="var(--ink)" strokeWidth={0.09} strokeDasharray="0.18 0.12" aria-hidden="true" />
       ))}
 
-      {/* legal destinations */}
+      {/* legal destinations: dashed circles; the active pawn also gets a path line and a ghost pawn */}
       {interactive &&
-        targets.map(({ m, pt }) => (
-          <g key={`tg${m.piece}`} onClick={() => onPick(m.piece)} style={{ cursor: 'pointer' }} aria-hidden="true">
-            <circle
-              className="target"
-              cx={pt.x}
-              cy={pt.y}
-              r={highlight === m.piece ? 0.6 : 0.48}
-              fill={highlight === m.piece ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.3)'}
-              stroke="#111827"
-              strokeWidth={highlight === m.piece ? 0.14 : 0.09}
-              strokeDasharray="0.2 0.12"
-            />
-            {m.capture && (
-              <path d={`M ${pt.x - 0.2} ${pt.y - 0.2} L ${pt.x + 0.2} ${pt.y + 0.2} M ${pt.x + 0.2} ${pt.y - 0.2} L ${pt.x - 0.2} ${pt.y + 0.2}`} stroke="#991b1b" strokeWidth={0.12} strokeLinecap="round" />
-            )}
-          </g>
-        ))}
+        targets.map(({ m, pt }) => {
+          const active = (drag?.piece ?? highlight) === m.piece
+          const near = drag?.piece === m.piece && Math.hypot(pt.x - drag.pt.x, pt.y - drag.pt.y) <= DROP_RADIUS
+          const from = piecePoint(turnColor, m.from, m.piece, rules)
+          return (
+            <g key={`tg${m.piece}`} pointerEvents="none" aria-hidden="true">
+              {active && (
+                <>
+                  <line x1={from.x} y1={from.y} x2={pt.x} y2={pt.y} stroke="#fff" strokeWidth={0.22} strokeLinecap="round" opacity={0.8} />
+                  <line x1={from.x} y1={from.y} x2={pt.x} y2={pt.y} stroke="#111827" strokeWidth={0.1} strokeLinecap="round" strokeDasharray="0.25 0.18" />
+                  <g style={{ transform: `translate(${pt.x}px, ${pt.y}px) scale(0.95)` }} opacity={0.55}>
+                    <g transform={stand}>
+                      <Pawn color={turnColor} />
+                    </g>
+                  </g>
+                </>
+              )}
+              <circle
+                className={active ? undefined : 'target'}
+                cx={pt.x}
+                cy={pt.y}
+                r={near ? 0.72 : active ? 0.62 : 0.48}
+                fill={near ? 'rgba(255,255,255,0.75)' : active ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.25)'}
+                stroke="#111827"
+                strokeWidth={active ? 0.14 : 0.09}
+                strokeDasharray="0.2 0.12"
+              />
+              {m.capture && (
+                <path d={`M ${pt.x - 0.2} ${pt.y - 0.2} L ${pt.x + 0.2} ${pt.y + 0.2} M ${pt.x + 0.2} ${pt.y - 0.2} L ${pt.x - 0.2} ${pt.y + 0.2}`} stroke="#991b1b" strokeWidth={0.12} strokeLinecap="round" />
+              )}
+            </g>
+          )
+        })}
 
       {/* pawns */}
       {drawn.map((d) => {
         const canPick = interactive && d.color === turnColor && legalPieces.has(d.piece) && !d.moving
-        const scale = d.p === GOAL ? 0.55 : d.p === BASE ? 1.05 : 0.95
+        const dragging = canPick && drag?.piece === d.piece
+        const active = canPick && (drag?.piece ?? highlight) === d.piece
+        const pt = dragging ? drag!.pt : d.pt
+        const scale = dragging ? 1.2 : d.p === GOAL ? 0.55 : d.p === BASE ? 1.05 : 0.95
         return (
           <g
             key={`${d.color}${d.piece}`}
             style={{
-              transform: `translate(${d.pt.x}px, ${d.pt.y}px) scale(${scale})`,
-              transition: stepMs > 0 ? `transform ${Math.max(stepMs - 20, 40)}ms linear` : 'none',
+              transform: `translate(${pt.x}px, ${pt.y}px) scale(${scale})`,
+              transition: stepMs > 0 && !dragging ? `transform ${Math.max(stepMs - 20, 40)}ms linear` : 'none',
             }}
           >
             <g
               className={canPick ? 'piece-g' : undefined}
+              style={canPick ? { cursor: dragging ? 'grabbing' : 'grab' } : undefined}
               role={canPick ? 'button' : undefined}
               tabIndex={canPick ? 0 : undefined}
-              aria-label={canPick ? `${label(d)}. Move it.` : undefined}
+              aria-label={canPick ? `${label(d)}. Press Enter to move it, or drag it.` : undefined}
               aria-hidden={canPick ? undefined : true}
-              onClick={canPick ? () => onPick(d.piece) : undefined}
+              onPointerDown={canPick ? (e) => startDrag(e, d.piece) : undefined}
               onKeyDown={
                 canPick
                   ? (e) => {
@@ -237,19 +324,32 @@ export function Board({ game, anim, moves, highlight, interactive, stepMs, onPic
                   : undefined
               }
               onMouseEnter={canPick ? () => onHover(d.piece) : undefined}
-              onMouseLeave={canPick ? () => onHover(null) : undefined}
+              onMouseLeave={canPick && !drag ? () => onHover(null) : undefined}
               onFocus={canPick ? () => onHover(d.piece) : undefined}
               onBlur={canPick ? () => onHover(null) : undefined}
             >
+              <g transform={stand}>
               {/* generous invisible hit area */}
               <circle r={0.8} fill="transparent" />
-              {canPick && <ellipse className="focus-ring" cy={0.1} rx={0.5} ry={0.68} fill="none" stroke="#1d4ed8" strokeWidth={0.1} />}
+              {/* glow: every movable pawn pulses amber; the one you are about to move gets a strong white/black ring */}
+              {canPick && !active && <ellipse className="halo" cy={0.1} rx={0.52} ry={0.7} fill="none" stroke="#f59e0b" strokeWidth={0.1} />}
+              {active && (
+                <>
+                  <ellipse cy={0.1} rx={0.56} ry={0.74} fill="none" stroke="#111827" strokeWidth={0.2} />
+                  <ellipse cy={0.1} rx={0.56} ry={0.74} fill="none" stroke="#fff" strokeWidth={0.1} />
+                </>
+              )}
+              {d.moving && <ellipse cy={0.1} rx={0.56} ry={0.74} fill="none" stroke="#fff" strokeWidth={0.1} />}
               <Pawn color={d.color} />
+              </g>
             </g>
           </g>
         )
       })}
     </svg>
+        </div>
+        {thrown && rollMs > 0 && <DiceThrow thrown={thrown} width={W} rollMs={rollMs} />}
+      </div>
       <div className="mt-2 grid grid-cols-2 gap-2">{bottomSeats.map(seatTag)}</div>
     </div>
   )

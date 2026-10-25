@@ -40,6 +40,14 @@ export function SettingsPanel({ settings, reduced, onChange, onClose }: Props) {
         </label>
 
         <label className="block">
+          <span className="mb-1 block font-semibold">Board view</span>
+          <select className="field" value={settings.view} onChange={(e) => onChange({ ...settings, view: e.target.value as Settings['view'] })}>
+            <option value="3d">3D table</option>
+            <option value="flat">Flat (top-down)</option>
+          </select>
+        </label>
+
+        <label className="block">
           <span className="mb-1 block font-semibold">AI difficulty</span>
           <select className="field" value={settings.difficulty} onChange={(e) => onChange({ ...settings, difficulty: e.target.value as Settings['difficulty'] })}>
             <option value="easy">Easy</option>
